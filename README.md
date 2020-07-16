@@ -4,3 +4,5 @@ A new take on plotting data across multiple y-axes in MATLAB. Creates a pair of 
 Maintains zoom, pan, and data cursor functionality.
 
 For usage, see addy_demo.m.
+
+Inspired by yyaxis, plotyyy (https://www.mathworks.com/matlabcentral/fileexchange/1017-plotyyy), and addaxis (https://www.mathworks.com/matlabcentral/fileexchange/9016-addaxis).
