@@ -7,6 +7,7 @@ function varargout = addy_axis(varargin)
 % axes_struct = addyaxis('ax', 'gca');
 % axes_struct = addyaxis('side', 'left');
 % axes_struct = addyaxis('ax', 'gca', 'side', 'right');
+% axes_struct = addyaxis('ax', 'gca', 'offset', 0.03);
 
 % Inspired by yyaxis,
 % plotyyy (https://www.mathworks.com/matlabcentral/fileexchange/1017-plotyyy),
