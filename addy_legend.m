@@ -13,9 +13,7 @@ function varargout = addy_legend(varargin)
 % and addaxis (https://www.mathworks.com/matlabcentral/fileexchange/9016-addaxis).
 
 %% Argument parsing
-if nargin < 1
-  error('Not enough arguments provided.')
-end
+narginchk(1, inf);
 
 function_parser = inputParser;
 function_parser.KeepUnmatched = true;
@@ -28,10 +26,11 @@ function_parser.PartialMatching = false;
 % end
 
 % Optional
-defaultOptional = {gcf, [], {}};
-optionalArguments = {'fig', 'lines', 'legend'};
+defaultOptional = {gcf, [], [], {}};
+optionalArguments = {'fig', 'ax', 'lines', 'legend'};
 verificationFunction = {...
   @(potential_figure) ( strcmpi(class(potential_figure), 'matlab.ui.Figure') ), ...
+  @(potential_axes) ( strcmpi(class(potential_axes), 'matlab.graphics.axis.Axes') ), ...
   @(lines) strcmpi(class(lines(1)), 'matlab.graphics.chart.primitive.Line') ...
   @(entries) ischar(entries{1})};
 for ii = 1:length(optionalArguments)
@@ -51,36 +50,52 @@ parse(function_parser, varargparsed{:});
 
 % Assign
 hfig = function_parser.Results.fig;
+hax = function_parser.Results.ax;
+if isempty(hax)
+  % Assume the axes created last are the (invisible) added axes that
+  % should contain the legend.
+  hax = hfig.Children(1);
+end
 p = function_parser.Results.lines;
 entries = function_parser.Results.legend;
 f = fields(function_parser.Unmatched);
 rest = cell(1, 2*length(f));
 for ii = length(f)
-rest{1, 2*ii-1} = f(ii);
-rest{1, 2*ii} = {function_parser.Unmatched.(f{ii})};
+  rest{1, 2*ii-1} = f(ii);
+  rest{1, 2*ii} = {function_parser.Unmatched.(f{ii})};
 end
 
 %% AddYLegend
 
-% Collect all line objects if none provided.
+% Collect all line objects if none provided. When iterating through
+% the children and the grandchildren from 1 to end, the lines are
+% collected in reverse chronological order (newest - oldest)
 if isempty(p)
   ii = 0;
+  p = gobjects(0);
   for jj = 1:length(hfig.Children)
     if ~strcmpi(class(hfig.Children(jj)), 'matlab.graphics.axis.Axes')
       continue
     end
-    for kk = 1:length(hfig.Children(jj).Children)
-      ii = ii + 1;
-      p(ii) = hfig.Children(jj).Children(kk);
+    % If the axes are left/right paired, go through them in reverse
+    % order.
+    for ll = flip(1:length(hfig.Children(jj).YAxis))
+      if ll == 2
+        yyaxis('right');
+      elseif ll == 1
+        yyaxis('left');
+      end
+      for kk = 1:length(hfig.Children(jj).Children)
+        ii = ii + 1;
+        p(ii) = hfig.Children(jj).Children(kk);
+      end
     end
   end
+  % Re-arrange to chronological order
   p = flip(p);
 end
 
-% Assume the last axes are the main axes that should contain the
-% legend.
-set(hfig, 'CurrentAxes', hfig.Children(end))
-leg_handle = legend(p, entries, rest{:});
+leg_handle = legend(hax, p, entries, rest{:});
 
 %% Outputs
 varargout = {leg_handle};
