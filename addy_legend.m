@@ -26,7 +26,7 @@ function_parser.PartialMatching = false;
 % end
 
 % Optional
-defaultOptional = {gcf, [], [], {}};
+defaultOptional = {[], [], [], {}};
 optionalArguments = {'fig', 'ax', 'lines', 'legend'};
 verificationFunction = {...
   @(potential_figure) ( strcmpi(class(potential_figure), 'matlab.ui.Figure') ), ...
@@ -51,18 +51,28 @@ parse(function_parser, varargparsed{:});
 % Assign
 hfig = function_parser.Results.fig;
 hax = function_parser.Results.ax;
+if isempty(hax) && isempty(hfig)
+  error('Either figure or axes must be specified.')
+end
 if isempty(hax)
   % Assume the axes created last are the (invisible) added axes that
   % should contain the legend.
   hax = hfig.Children(1);
 end
-p = function_parser.Results.lines;
+if isempty(hfig)
+  if strcmpi(class(hax.Parent), 'matlab.graphics.layout.TiledChartLayout')
+    hfig = hax.Parent.Parent;
+  else
+    hfig = hax.Parent;
+  end
+end
+hlines = function_parser.Results.lines;
 entries = function_parser.Results.legend;
-f = fields(function_parser.Unmatched);
-rest = cell(1, 2*length(f));
-for ii = length(f)
-  rest{1, 2*ii-1} = f(ii);
-  rest{1, 2*ii} = {function_parser.Unmatched.(f{ii})};
+legend_parameters = fields(function_parser.Unmatched);
+rest = cell(1, 2*length(legend_parameters));
+for ii = length(legend_parameters)
+  rest{1, 2*ii-1} = legend_parameters(ii);
+  rest{1, 2*ii} = {function_parser.Unmatched.(legend_parameters{ii})};
 end
 
 %% AddYLegend
@@ -70,32 +80,61 @@ end
 % Collect all line objects if none provided. When iterating through
 % the children and the grandchildren from 1 to end, the lines are
 % collected in reverse chronological order (newest - oldest)
-if isempty(p)
+if isempty(hlines)
+  
+  % First, collect the scope of the axes whose children will be
+  % named by the legend
+  for ii = 1:length(hfig.Children)
+    class_array{ii} = class(hfig.Children(ii)); %#ok<AGROW>
+  end
+  % If the figure has tiles, consider only the current tile
+  is_tile = strcmpi(class_array,'matlab.graphics.layout.TiledChartLayout');
+  if any(is_tile)
+    current_tile = getappdata(hfig.Children(is_tile), 'CurrentTile');
+    axes_scope(1) = hax;
+    for ii = 1:length(hfig.Children)
+      if strcmpi(class_array{ii}, 'matlab.graphics.axis.Axes')
+        if getappdata(hfig.Children(ii), 'CurrentTile') == current_tile
+          axes_scope = [hfig.Children(ii) ; axes_scope]; %#ok<AGROW>
+        else
+          continue
+        end
+      elseif is_tile(ii)
+        [~, tile_axis] = nexttileplus(current_tile);
+        axes_scope = [tile_axis ; axes_scope]; %#ok<AGROW>
+      else
+        continue
+      end
+    end
+  else % No tiles
+  axes_scope = hfig.Children;
+  end
+  
   ii = 0;
-  p = gobjects(0);
-  for jj = 1:length(hfig.Children)
-    if ~strcmpi(class(hfig.Children(jj)), 'matlab.graphics.axis.Axes')
-      continue
+  hlines = gobjects(0);
+  for jj = 1:length(axes_scope)
+    if ~strcmpi(class(axes_scope(jj)), 'matlab.graphics.axis.Axes')
+      continue % In case the figure is a simple figure this scope might contain legends
     end
     % If the axes are left/right paired, go through them in reverse
     % order.
-    for ll = flip(1:length(hfig.Children(jj).YAxis))
+    for ll = flip(1:length(axes_scope(jj).YAxis))
       if ll == 2
         yyaxis('right');
       elseif ll == 1
         yyaxis('left');
       end
-      for kk = 1:length(hfig.Children(jj).Children)
+      for kk = 1:length(axes_scope(jj).Children)
         ii = ii + 1;
-        p(ii) = hfig.Children(jj).Children(kk);
+        hlines(ii) = axes_scope(jj).Children(kk);
       end
     end
   end
   % Re-arrange to chronological order
-  p = flip(p);
+  hlines = flip(hlines);
 end
 
-leg_handle = legend(hax, p, entries, rest{:});
+leg_handle = legend(hax, hlines, entries, rest{:});
 
 %% Outputs
 varargout = {leg_handle};
