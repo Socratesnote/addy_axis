@@ -83,59 +83,80 @@ end
 if isempty(hlines)
   
   % First, collect the scope of the axes whose children will be
-  % named by the legend
+  % named by the legend.
+  % Find the class of all figure children
   for ii = 1:length(hfig.Children)
     class_array{ii} = class(hfig.Children(ii)); %#ok<AGROW>
   end
-  % If the figure has tiles, consider only the current tile
+  % Determine the presence of tiles
   is_tile = strcmpi(class_array,'matlab.graphics.layout.TiledChartLayout');
   if any(is_tile)
+    % If the figure has tiles, consider only the current tile
     current_tile = getappdata(hfig.Children(is_tile), 'CurrentTile');
-    axes_scope(1) = hax;
+    axes_scope = gobjects(0);
+    htile = hfig.Children(is_tile);
+    % Iterate over all children; action depends on the class
     for ii = 1:length(hfig.Children)
       if strcmpi(class_array{ii}, 'matlab.graphics.axis.Axes')
+        % Child is axes. Determine associated tile
         if getappdata(hfig.Children(ii), 'CurrentTile') == current_tile
-          axes_scope = [hfig.Children(ii) ; axes_scope]; %#ok<AGROW>
+          axes_scope = [axes_scope; hfig.Children(ii)]; %#ok<AGROW>
         else
+          % Not part of current tile
           continue
         end
       elseif is_tile(ii)
-        [~, tile_axis] = nexttileplus(current_tile);
-        axes_scope = [tile_axis ; axes_scope]; %#ok<AGROW>
+        % Child is tile. Get the axis handle from nexttile().
+        tile_axis = nexttile(htile, current_tile);
+        % Tiles are created first, so they are appended
+        axes_scope = [axes_scope; tile_axis]; %#ok<AGROW>
       else
+        % Child is other, e.g. legend
         continue
       end
     end
+    
   else % No tiles
   axes_scope = hfig.Children;
   end
   
-  ii = 0;
-  hlines = gobjects(0);
+  % Now that the scope is clear, collect lines
+  ii = 0; % Count lines
+  hlines = gobjects(0); % Initialize line handles
+
+  % Iterate over all axes in scope
   for jj = 1:length(axes_scope)
+    
     if ~strcmpi(class(axes_scope(jj)), 'matlab.graphics.axis.Axes')
-      continue % In case the figure is a simple figure this scope might contain legends
+      % If the figure is a simple figure, this scope might contain
+      % legends or other non-axes objects
+      continue 
     end
-    % If the axes are left/right paired, go through them in reverse
-    % order.
+    
+    % If the axes are left/right paired, assume the right was added
+    % last (so process it first)
     for ll = flip(1:length(axes_scope(jj).YAxis))
       if ll == 2
         yyaxis('right');
       elseif ll == 1
         yyaxis('left');
       end
+      
+      % Collect all children (lines) of the current axes
       for kk = 1:length(axes_scope(jj).Children)
         ii = ii + 1;
         hlines(ii) = axes_scope(jj).Children(kk);
       end
     end
   end
-  % Re-arrange to chronological order
+  
+  % Re-arrange to chronological order; last created line at the end of
+  % the array
   hlines = flip(hlines);
 end
 
-leg_handle = legend(hax, hlines, entries, rest{:});
+hlegend = legend(hax, hlines, entries, rest{:});
 
 %% Outputs
-varargout = {leg_handle};
+varargout = {hlegend};
 end
