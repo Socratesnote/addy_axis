@@ -12,9 +12,7 @@ function varargout = addy_plot(varargin)
 
 %% Argument parsing
 
-if nargin < 2
-  error('Not enough arguments provided.')
-end
+narginchk(2, inf);
 
 function_parser = inputParser;
 function_parser.KeepUnmatched = true;

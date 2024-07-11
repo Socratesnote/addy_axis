@@ -1,13 +1,13 @@
-function varargout = addy_axis(varargin)
-%ADDY_AXIS Adds additional y-axes adjacent to the current axis object
-%while overlaying data with the current plots. Retains full data
-%cursor functionality and scaling.
+function axes_struct = addy_axis(varargin)
+%ADDY_AXIS Adds additional y-axes adjacent to the current axis object while
+%overlaying data with the current plots. Data cursors, zooming, and panning
+%work. Data brushing does not. Returns a struct with visible and invisible axes
+%in the figure.
 
 % Use:
 % axes_struct = addyaxis('ax', 'gca');
 % axes_struct = addyaxis('side', 'left');
-% axes_struct = addyaxis('ax', 'gca', 'side', 'right');
-% axes_struct = addyaxis('ax', 'gca', 'offset', 0.03);
+% axes_struct = addyaxis('ax', 'gca', 'side', 'r', 'offset', 0.05);
 
 % Inspired by yyaxis,
 % plotyyy (https://www.mathworks.com/matlabcentral/fileexchange/1017-plotyyy),
@@ -57,10 +57,10 @@ side = function_parser.Results.side;
 % plotting. Depending on how many axes already exist (or user
 % arguments), plot on the right or the left.
 
-% Count number of added axes
+% Count number of added axes.
 hfig = main_axes.Parent;
-num_addy_axes = 1; % Including the one we're about to create
-for ii = 1:(length(hfig.Children) - 1) % Assuming at least 1 axes child already exists
+num_addy_axes = 1; % Including the one we're about to create.
+for ii = 1:(length(hfig.Children) - 1) % Assuming at least 1 axes child already exists.
     if ~strcmpi(class(hfig.Children(ii)), 'matlab.graphics.axis.Axes')
       continue
     end
@@ -69,58 +69,69 @@ end
 
 % Determine side
 if isempty(side)
-  side = 'right';
+  side = "right";
   if mod(num_addy_axes, 2) == 0
-    side = 'left';
+    side = "left";
   end
 end
 
 % Create new visible axes
-if strcmpi(side, 'right')
+if any(strcmpi(side, ["right", "r"]))
   next_axes_position_shift = main_axes.Position(3) + axes_offset * ((num_addy_axes + 1)/2);
-  axes_pair.axes_visible = axes('Position', main_axes.Position + ...
+  axes_struct.axes_visible = axes('Position', main_axes.Position + ...
     [next_axes_position_shift, zeros(1,3)]);
-  axes_pair.axes_visible.TickDir = 'out';
-else
+  axes_struct.axes_visible.TickDir = 'out';
+elseif any(strcmpi(side, ["left", "l"]))
   next_axes_position_shift = axes_offset * ((num_addy_axes)/2);
-  axes_pair.axes_visible = axes('Position', main_axes.Position - ...
+  axes_struct.axes_visible = axes('Position', main_axes.Position - ...
     [next_axes_position_shift, zeros(1,3)]);
-  axes_pair.axes_visible.TickDir = 'in';
+  axes_struct.axes_visible.TickDir = 'in';
+else
+  error("Invalid argument for ''side'': use ''(r)ight'' or ''(l)eft''.");
 end
-axes_pair.axes_visible.Position(3) = 0; % Flatten the x-axis of the visible axes
-axes_pair.axes_visible.Toolbar.Visible = 'off'; % Hide the toolbar
+
+axes_struct.axes_visible.Position(3) = 0; % Flatten the x-axis of the visible axes.
+axes_struct.axes_visible.Toolbar.Visible = 'off'; % Hide the toolbar.
 
 % Create a new axes object to hold the plotted data. This will not be
 % visible or interactable.
-axes_pair.axes_hidden = axes('Position', main_axes.Position);
-axes_pair.axes_hidden.Visible = 'off';
-axes_pair.axes_hidden.HitTest = 'off';
-axes_pair.axes_hidden.Toolbar.Visible = 'off';
+axes_struct.axes_hidden = axes('Position', main_axes.Position);
+axes_struct.axes_hidden.Visible = 'off';
+axes_struct.axes_hidden.HitTest = 'off';
+axes_struct.axes_hidden.Toolbar.Visible = 'off';
 
 % Set callbacks for home, zoom and pan to update all axes when the
 % limits of the main axes change. Click-and-drag is disabled.
-% Home
-hhome = findall(main_axes.Toolbar,'Tooltip','Restore View');
-% The home button's ButtonDownFcn is unused as per documentation, so a
-% single function handles the pre- and post-click behavior in a single
-% action.
-set(hhome,'ButtonPushedFcn',@addy_home);
+this_toolbar = axtoolbar(main_axes, 'default');
+
+% Home. The home button's ButtonDownFcn is unused as per documentation, so a
+% single function handles the pre- and post-click behavior in a single action.
+isRestoreButton = strcmpi({this_toolbar.Children.Icon}, 'restoreview');
+restoreButtonHandle = this_toolbar.Children(isRestoreButton);
+set(restoreButtonHandle, 'ButtonPushedFcn', @addy_home);
+
 % Zoom
 hzoom = zoom;
-set(hzoom,'ActionPreCallback',@addy_zoom_pre);
-set(hzoom,'ActionPostCallback',@addy_zoom_post);
+set(hzoom, 'ActionPreCallback', @addy_zoom_pre);
+set(hzoom, 'ActionPostCallback', @addy_zoom_post);
+
 % Pan
 hpan = pan;
-set(hpan,'ActionPreCallback', @addy_pan_pre);
-set(hpan,'ActionPostCallback', @addy_pan_post);
+set(hpan, 'ActionPreCallback', @addy_pan_pre);
+set(hpan, 'ActionPostCallback', @addy_pan_post);
+
 % Click-and-drag is disabled, because I cannot find the right callback
 % to execute on button release. It seems that Matlab cannot actually
 % detect button release.
 set(main_axes, 'ButtonDownFcn',@addy_click_pre);
-set(gcf,'WindowButtonUpFcn',@addy_click_post);
+set(gcf, 'WindowButtonUpFcn', @addy_click_post);
 
-%% Outputs
-varargout = {axes_pair};
+% Brush?
+hbrush = brush;
+set(hbrush, 'ActionPreCallback', @addy_brush_pre);
+set(hbrush, 'ActionPostCallback', @addy_brush_post);
+
+%% Cleanup
 % Restore the active axes to the main axes after plotting.
 set(gcf, 'CurrentAxes', main_axes);
 end
