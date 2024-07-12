@@ -1,5 +1,5 @@
 function addy_home(hbutton, hevent)
-%ADDY_HOME Sync limits post homing to axes created by addyaxis().
+%ADDY_HOME Sync limits post homing to axes created by addy_axis().
 
 hax.Axes = hbutton.Parent.Parent;
 

@@ -30,9 +30,9 @@ for ii = 1:length(hfig.Children)
       matlab.graphics.controls.internal.resetHelper(hfig.Children(ii), true);
     end
   end
-  % However, this also resets the faux axes to their default state; copy the
-  % limits from the axes on the previous index (which are the invisible,
-  % data-containing counterpart).
+  % However, this resets the faux axes to their default state with [0, 1]
+  % limits; copy the limits from the axes on the previous index (which are the
+  % invisible, data-containing counterpart).
   if strcmpi(hfig.Children(ii).Visible, 'on')
     hfig.Children(ii).YLim = hfig.Children(ii - 1).YLim;
   end
