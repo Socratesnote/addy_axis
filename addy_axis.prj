@@ -7,7 +7,7 @@
     <param.summary>A new take on adding additional y-axes to MATLAB figures.</param.summary>
     <param.description>A new take on adding additional y-axes to MATLAB figures. Data is plotted in an invisible overlay of the main axes, while the scale is shown in an empty axis adjacent to the main axes. Plots can be zoomed, panned, and data tooltips function as normal.</param.description>
     <param.screenshot />
-    <param.version>0.1</param.version>
+    <param.version>1.2</param.version>
     <param.output>${PROJECT_ROOT}\addy_axis.mltbx</param.output>
     <param.products.name />
     <param.products.id />
@@ -38,7 +38,7 @@
     <param.demosxml />
     <param.apps />
     <param.registered.apps />
-    <param.docs>${PROJECT_ROOT}\info.xml</param.docs>
+    <param.docs />
     <param.getting.started.guide>${PROJECT_ROOT}\doc\GettingStarted.mlx</param.getting.started.guide>
     <param.matlabpath.excludes />
     <param.javaclasspath.excludes />
@@ -73,6 +73,7 @@
       <param.demosxml />
       <param.apps />
       <param.registered.apps />
+      <param.docs />
       <param.matlabpath.excludes />
       <param.javaclasspath.excludes />
       <param.exported.on.package />
