@@ -7,21 +7,23 @@ function addy_zoom_post(hfig,hax)
 % scaling and shifting the y-axis, we only care about shift/scaling in
 % that dimension.
 
-% Original and new axes limits of the main axes.
+% Get limits prior to zoom.
 limits_pre = addy_getaxisdata(hax, 'limits_pre');
-limits_post = [hax.Axes.XLim, hax.Axes.YLim];
+% Get current limits.
+limits_post.X = hax.Axes.XLim;
+limits_post.Y = hax.Axes.YLim;
 
 % Original and new axes range of the main axes.
-range_pre = limits_pre(4) - limits_pre(3);
-range_post = limits_post(4) - limits_post(3);
+range_pre = limits_pre.Y(2) - limits_pre.Y(1);
+range_post = limits_post.Y(2) - limits_post.Y(1);
 
 % Axes shift of the origin and range scaling, normalized to
 % main axes range.
-origin_shift = (limits_post(3) - limits_pre(3)) / ...
+origin_shift = (limits_post.Y(1) - limits_pre.Y(1)) / ...
   range_pre;
 range_scaling = (range_post / range_pre);
 
-% Apply to all axes children of the figure
+% Apply to all axes children of the figure.
 for ii = 1:length(hfig.Children)
   if ~strcmpi(class(hfig.Children(ii)), 'matlab.graphics.axis.Axes')
     continue
@@ -37,21 +39,20 @@ for ii = 1:length(hfig.Children)
       else
         yyaxis('right')
       end
-      % Adjust axes
+      % Adjust axes.
       addy_limits_pre = hfig.Children(ii).YLim;
       addy_range_pre = addy_limits_pre(2) - addy_limits_pre(1);
       
-      hfig.Children(ii).XLim = limits_post(1:2);
+      hfig.Children(ii).XLim = limits_post.X;
       hfig.Children(ii).YLim(1) = addy_limits_pre(1) + addy_range_pre*origin_shift;
       hfig.Children(ii).YLim(2) = hfig.Children(ii).YLim(1) + addy_range_pre*range_scaling;
     end
     continue
   end
-  % Adjust axes
+  % Adjust axes.
   addy_limits_pre = hfig.Children(ii).YLim;
   addy_range_pre = addy_limits_pre(2) - addy_limits_pre(1);
   
-  hfig.Children(ii).XLim = limits_post(1:2);  
   hfig.Children(ii).YLim(1) = addy_limits_pre(1) + addy_range_pre*origin_shift;
   hfig.Children(ii).YLim(2) = hfig.Children(ii).YLim(1) + addy_range_pre*range_scaling;
 end

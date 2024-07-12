@@ -45,8 +45,9 @@ varargparsed = varargin(1:1);
 parse(function_parser, varargparsed{:});
 
 % Assign
-axes_hidden = function_parser.Results.ax_struct.axes_hidden;
-axes_visible = function_parser.Results.ax_struct.axes_visible;
+% Take the first element of the struct, which is the one added last.
+axes_hidden = function_parser.Results.ax_struct.axes_hidden(1);
+axes_visible = function_parser.Results.ax_struct.axes_visible(1);
 
 % Restore the active axes to the main axes after plotting.
 main_axes = gca;
